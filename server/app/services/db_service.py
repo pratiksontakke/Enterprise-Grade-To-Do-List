@@ -1,6 +1,6 @@
 from supabase import create_client, Client
 from app.core.config import settings
-from app.models.task import TaskCreate
+from app.models.task import TaskCreate, TaskInDB, TaskUpdate
 
 # Initialize the Supabase client
 # This single instance will be reused across the application
@@ -12,10 +12,11 @@ def get_tasks():
     """
     response = supabase.table('tasks').select("*").order('created_at', desc=True).execute()
     if response.data:
-        return response.data
+        # Convert the list of dictionaries into a list of TaskInDB models
+        return [TaskInDB(**task) for task in response.data]
     return []
 
-def create_task(task: TaskCreate):
+def create_task(task: TaskCreate) -> TaskInDB:
     """
     Inserts a new task record into the database.
 
@@ -25,17 +26,56 @@ def create_task(task: TaskCreate):
     Returns:
         The data from the newly created record.
     """
-    # Pydantic's .dict() method converts the model to a dictionary
-    # that Supabase client can work with.
-    # We exclude unset fields to avoid sending nulls for non-nullable DB columns
-    # if they have default values.
-    task_dict = task.dict(exclude_unset=True)
+    # Use Pydantic's `model_dump` with `mode='json'`. This correctly
+    # converts special types like datetime and UUID into JSON-compatible strings.
+    task_dict = task.model_dump(mode='json')
     
     response = supabase.table('tasks').insert(task_dict).execute()
     
     if response.data:
-        return response.data[0]
+        # Return the new record as a validated TaskInDB model
+        return TaskInDB(**response.data[0])
     return None
+
+def update_task(task_id: str, task_update: TaskUpdate) -> TaskInDB:
+    """
+    Updates an existing task in the database.
+    Only updates the fields that are provided in the task_update model.
+    """
+    # Convert Pydantic model to dict, excluding unset (None) fields
+    # so we only update the values that were actually sent.
+    update_data = task_update.model_dump(exclude_unset=True)
+
+    # If the request body is empty, there is nothing to update.
+    if not update_data:
+        # We perform a select query to confirm the task exists.
+        # .single() returns a dictionary directly in response.data.
+        response = supabase.table('tasks').select("*").eq('id', task_id).single().execute()
+        if response.data:
+            return TaskInDB(**response.data)
+    else:
+        # We perform the update.
+        # .update() returns a list containing the updated record(s).
+        response = supabase.table('tasks').update(update_data).eq('id', task_id).execute()
+        if response.data:
+            # We take the first element from the list.
+            return TaskInDB(**response.data[0])
+            
+    # If response.data is empty in either case, it means no record was found.
+    return None
+
+def delete_task(task_id: str) -> bool:
+    """
+    Deletes a task from the database.
+    Returns True if the deletion was successful, otherwise False.
+    """
+    response = supabase.table('tasks').delete().eq('id', task_id).execute()
+    
+    # Supabase delete operation returns the deleted records in response.data.
+    # If data exists, it means records were deleted.
+    if response.data:
+        return True
+    return False
 
 # We will add the create_task function and others here later,
 # once we have the NLP service that produces the data for it. 
