@@ -1,9 +1,13 @@
 from supabase import create_client, Client
 from app.core.config import settings
 from app.models.task import TaskCreate, TaskInDB, TaskUpdate
+from fastapi.middleware.cors import CORSMiddleware
 
 # Initialize the Supabase client
 # This single instance will be reused across the application
+print("SUPABASE_URL:", settings.SUPABASE_URL)
+print("SUPABASE_KEY:", settings.SUPABASE_KEY[:6], "...")  # Don't print full key in logs!
+
 supabase: Client = create_client(settings.SUPABASE_URL, settings.SUPABASE_KEY)
 
 def get_tasks():
@@ -80,3 +84,14 @@ def delete_task(task_id: str) -> bool:
 
 # We will add the create_task function and others here later,
 # once we have the NLP service that produces the data for it. 
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "https://auratasks.netlify.app",
+        "http://localhost:8080"
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+) 
