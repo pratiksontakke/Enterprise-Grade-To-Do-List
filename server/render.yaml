@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: aura-task-api
+    env: python
+    plan: free                 # or "starter"
+    rootDir: server
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    autoDeploy: true
+
+    envVars:
+      - key: SUPABASE_URL
+        sync: false 
+      - key: SUPABASE_KEY
+        sync: false       
+      - key: OPENAI_API_KEY
+        sync: false                         
