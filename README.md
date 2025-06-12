@@ -9,7 +9,7 @@ A smart to-do list application that intelligently parses tasks from natural lang
 
 ### 📺 Live Demo & Presentation
 
-*<p align="center">**Live Application:** [**[Your Live Project URL Here]**](https://your-live-project-url-here.com)</p>*
+*<p align="center">**Live Application:** [**[Your Live Project URL Here]**](https://auratasks.netlify.app/)</p>*
 *<p align="center">**Video Walkthrough:** [Your YouTube Video Link Here]</p>*
 
 ---
