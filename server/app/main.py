@@ -12,7 +12,10 @@ app = FastAPI(
 # Set up CORS (Cross-Origin Resource Sharing)
 # For local development, we allow all origins.
 # In production, this should be restricted to the frontend's domain.
-origins = ["http://localhost:8080", "https://enterprise-grade-to-do-list.onrender.com"]
+origins = [
+    "http://localhost:8080", 
+    "https://enterprise-grade-to-do-list.onrender.com",  
+    "https://auratasks.netlify.app"]
 
 app.add_middleware(
     CORSMiddleware,
