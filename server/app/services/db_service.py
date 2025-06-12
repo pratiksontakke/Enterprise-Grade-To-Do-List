@@ -12,7 +12,6 @@ def get_tasks():
     Fetches all tasks from the database.
     """
     response = supabase.table('tasks').select("*").order('created_at', desc=True).execute()
-    print("response:", response)
     if response.data:
         # Convert the list of dictionaries into a list of TaskInDB models
         return [TaskInDB(**task) for task in response.data]
