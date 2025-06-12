@@ -42,9 +42,10 @@ def update_task(task_id: str, task_update: TaskUpdate) -> TaskInDB:
     Updates an existing task in the database.
     Only updates the fields that are provided in the task_update model.
     """
-    # Convert Pydantic model to dict, excluding unset (None) fields
-    # so we only update the values that were actually sent.
-    update_data = task_update.model_dump(exclude_unset=True)
+    # Convert Pydantic model to a JSON-compatible dict.
+    # `mode='json'` handles types like datetime.
+    # `exclude_unset=True` ensures we only update fields that were actually sent.
+    update_data = task_update.model_dump(mode='json', exclude_unset=True)
 
     # If the request body is empty, there is nothing to update.
     if not update_data:
@@ -60,7 +61,7 @@ def update_task(task_id: str, task_update: TaskUpdate) -> TaskInDB:
         if response.data:
             # We take the first element from the list.
             return TaskInDB(**response.data[0])
-            
+
     # If response.data is empty in either case, it means no record was found.
     return None
 

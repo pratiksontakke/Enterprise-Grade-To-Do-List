@@ -58,11 +58,12 @@ def parse_and_create_task(text_input: dict = Body(...)):
             )
         return new_task
 
-    except ValidationError as e:
-        # This catches errors if the AI's output doesn't match our Pydantic model
+    except ValidationError:
+        # This catches our custom "is_actionable" validation error from the Pydantic model.
+        # We return a user-friendly message.
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail={"message": "AI output failed validation.", "errors": e.errors()},
+            detail="This doesn't seem to be an actionable task. Please provide a clear task name and either an assignee or a due date.",
         )
     except Exception as e:
         # Catch any other unexpected errors from the NLP service or DB
@@ -77,35 +78,57 @@ def parse_transcript_and_create_tasks(text_input: dict = Body(...)):
     Parses a long-form transcript to find and create multiple tasks.
     """
     raw_text = text_input.get("text")
-    if not raw_text or not raw_text.strip():
+    if not raw_text or len(raw_text.split()) < 5: # Basic check for transcript length
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Input text cannot be empty.",
+            detail="Transcript is too short. Please provide a more detailed transcript for accurate task parsing.",
         )
     
     try:
         created_tasks = []
         parsed_tasks_list = nlp_service.parse_transcript_to_tasks(raw_text)
 
-        for task_dict in parsed_tasks_list:
-            # Validate each task from the transcript individually
-            validated_parsed_data = TaskParsed(**task_dict)
-            
-            task_to_create = TaskCreate(
-                **validated_parsed_data.dict(),
-                original_text=raw_text, # Store the full transcript for context
-                source="transcript",
-                user_id=None
+        if not parsed_tasks_list:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="No actionable tasks were found in the transcript. Try rephrasing or adding more details like names and deadlines."
             )
+
+        for task_dict in parsed_tasks_list:
+            try:
+                # Validate each task from the transcript individually
+                validated_parsed_data = TaskParsed(**task_dict)
+                
+                task_to_create = TaskCreate(
+                    **validated_parsed_data.model_dump(),
+                    original_text=raw_text, # Store the full transcript for context
+                    source="transcript",
+                    user_id=None
+                )
+                
+                new_task = db_service.create_task(task_to_create)
+                if new_task:
+                    created_tasks.append(new_task)
             
-            new_task = db_service.create_task(task_to_create)
-            if new_task:
-                created_tasks.append(new_task)
+            except ValidationError:
+                # If a single task in the transcript is not actionable, we can skip it
+                # and continue processing the rest. For now, we'll just log it.
+                print(f"Skipping non-actionable task from transcript: {task_dict.get('task_name')}")
+                continue
         
+        if not created_tasks:
+             raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="We found some potential tasks, but none were actionable. Please ensure tasks have a clear subject and a due date or an assignee."
+            )
+
         return created_tasks
 
+    except HTTPException as e:
+        # Re-raise HTTPExceptions directly to preserve their status code and detail
+        raise e
     except Exception as e:
-        # A broad catch-all for errors during transcript processing
+        # A broad catch-all for other errors during transcript processing
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"An error occurred during transcript processing: {e}",
