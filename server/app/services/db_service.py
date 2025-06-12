@@ -4,6 +4,10 @@ from app.models.task import TaskCreate, TaskInDB, TaskUpdate
 
 # Initialize the Supabase client
 # This single instance will be reused across the application
+print("SUPABASE_URL:", settings.SUPABASE_URL)
+print("SUPABASE_KEY:", settings.SUPABASE_KEY)
+if not settings.SUPABASE_URL or not settings.SUPABASE_KEY:
+    raise Exception("Missing Supabase configuration!")
 
 supabase: Client = create_client(settings.SUPABASE_URL, settings.SUPABASE_KEY)
 
@@ -12,6 +16,7 @@ def get_tasks():
     Fetches all tasks from the database.
     """
     response = supabase.table('tasks').select("*").order('created_at', desc=True).execute()
+    print("response:", response)
     if response.data:
         # Convert the list of dictionaries into a list of TaskInDB models
         return [TaskInDB(**task) for task in response.data]
