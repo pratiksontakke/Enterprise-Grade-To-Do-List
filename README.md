@@ -9,8 +9,8 @@ A smart to-do list application that intelligently parses tasks from natural lang
 
 ### 📺 Live Demo & Presentation
 
-*<p align="center">**Live Application:** [**[Your Live Project URL Here]**](https://auratasks.netlify.app/)</p>*
-*<p align="center">**Video Walkthrough:** [Your YouTube Video Link Here]</p>*
+*<p align="center">**Live Application:** [**auratasks.netlify.app**](https://auratasks.netlify.app/)</p>*
+*<p align="center">**Video Walkthrough:** [**Video Link Here**]()</p>*
 
 ---
 
@@ -91,8 +91,8 @@ First, configure and run the FastAPI server.
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/your-username/Aura-Task.git
-cd Aura-Task/server
+git clone https://github.com/pratiksontakke/Enterprise-Grade-To-Do-List.git
+cd Enterprise-Grade-To-Do-List/server
 
 # 2. Create and activate a Python virtual environment
 python -m venv venv
@@ -134,17 +134,17 @@ SUPABASE_KEY="your_supabase_anon_public_key_here"
 In your Supabase project, navigate to the **SQL Editor** and run the following script to create the `tasks` table:
 
 ```sql
-CREATE TABLE tasks (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+CREATE TABLE public.tasks (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     task_name TEXT NOT NULL,
     assignee TEXT,
     due_date TIMESTAMPTZ,
-    priority VARCHAR(2),
+    priority TEXT NOT NULL DEFAULT 'P3',
     status TEXT NOT NULL DEFAULT 'To Do',
     original_text TEXT,
-    source TEXT,
+    source TEXT NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-    user_id UUID -- Nullable for now, for future authentication
+    user_id UUID
 );
 
 -- Enable Row Level Security (good practice)
@@ -191,7 +191,24 @@ npm run dev
 The frontend application will be available at `http://localhost:5173` (or another port if 5173 is busy). It is pre-configured to connect to your local backend server.
 
 ---
+### Example Prompts for API Testing
 
+#### Create Single Task (POST /api/v1/tasks/parse-single)
+
+Use these in Postman or curl as the `text` field in your JSON body:
+
+1. **"Remind Aman to submit the Q3 report by this Friday"**
+2. **"Lisa needs to investigate the production bug as soon as possible"**
+3. **"Schedule a team meeting for next Monday and assign Sarah to send invites"**
+
+#### Parse Meeting Transcript (POST /api/v1/tasks/parse-transcript)
+
+Use these as the `text` field in your JSON body:
+
+1. **"Okay team, quick sync. Rajeev, please finalize the presentation deck and send it to me by Tuesday. Sarah, you're on point for drafting the client follow-up email. I also need someone to book a conference room for the Wednesday debrief. Aman can you handle that?"**
+2. **"So the next steps are clear. Lisa will investigate the production bug, that's top priority. We should also think about our marketing plan. I was talking to David about it yesterday. Let's make sure the server logs are archived by the end of the day."** 
+
+---
 ## 📸 Screenshots
 
 <p align="center">
